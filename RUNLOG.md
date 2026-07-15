@@ -97,3 +97,18 @@ Score command: `python evaluate.py --checkpoint ckpt.pt --text_file ../data/dev_
   STEP-LIMITED, not PARAM-LIMITED. Adding capacity hurts. Remaining gains should come
   from faster convergence within 2000 steps (larger effective batch, better init,
   LR tuning), not from a bigger model.
+
+## Run 4 - Batch size sweep (8 -> 24 -> 32)
+- Hypothesis: Run 3 proved we are step-limited, not param-limited. Larger batches give
+  each of the fixed 2000 steps a cleaner, lower-variance gradient, so the model
+  converges better inside the step budget without adding any parameters.
+- Changed (vs Run 2 best): batch 8 -> 24 -> 32. Everything else identical (BPE 2048,
+  4 layer untied, cosine recipe).
+- dev bpb: batch 8 = 1.9993 (ref) -> batch 24 = 1.8634 -> batch 32 = 1.8267.
+  Train loss fell 4.48 -> 4.01 -> 3.83 across the sweep.
+- Observation: monotonic improvement, no plateau yet. Loss still dropping at step 2000
+  even at batch 32, so convergence is still not saturated. Per-step time rose
+  20 -> 59 -> 80 ms; batch 32 run took ~3 min (still within time budget).
+- Conclusion: batch size is the second major lever after the tokenizer, and it
+  confirms the step-limited diagnosis. Best so far batch 32 = 1.8267. Next: push batch
+  further, paired with a higher peak LR to keep converging inside 2000 steps.
