@@ -109,3 +109,15 @@ Score command: `python evaluate.py --checkpoint ckpt.pt --text_file ../data/dev_
 - Conclusion: the batch-plus-LR axis is the dominant remaining lever now that the
   tokenizer is fixed. Best so far 1.7262. This confirms twice over that the model is
   optimization-limited: everything that helps it converge more inside 2000 steps wins.
+
+## Run 6 - Batch 64 + peak LR 2e-3
+- Hypothesis: batch 48 still had loss falling at step 2000; push batch to 64 and LR to
+  2e-3 to extract the remaining convergence. Expect a smaller but real drop.
+- Changed (vs Run 5): batch 48 -> 64, peak LR 1.5e-3 -> 2e-3.
+- dev bpb: 1.7262 -> 1.6947 (down 0.0315). Train loss 3.40 -> 3.16, curve stable.
+- Observation: still slightly descending at step 2000, so convergence is not fully
+  saturated, but run time hit 406s (~6.8 min, 200 ms/step). This is the practical
+  ceiling on batch under the time budget; further batch increases are not worth the
+  wall-clock cost even though bpb would likely keep inching down.
+- Conclusion: locked batch 64 + lr 2e-3 as the convergence config. Diminishing returns
+  on this axis. Best 1.6947. Next lever is the tokenizer allocation, not more compute.
