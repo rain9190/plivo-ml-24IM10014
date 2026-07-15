@@ -121,3 +121,20 @@ Score command: `python evaluate.py --checkpoint ckpt.pt --text_file ../data/dev_
   wall-clock cost even though bpb would likely keep inching down.
 - Conclusion: locked batch 64 + lr 2e-3 as the convergence config. Diminishing returns
   on this axis. Best 1.6947. Next lever is the tokenizer allocation, not more compute.
+
+## Run 7 - Script-aware BPE with protected Hindi budget (best so far)
+- Motivation (measured): on dev, plain BPE compressed English to ~3.16 chars/tok but
+  Hindi to only ~1.58 chars/tok. BPE greedily takes the most frequent byte-pairs, and
+  since English is 67 percent of the corpus, English pairs win almost every merge and
+  Devanagari is starved, even though Hindi is 33 percent of the byte budget and costs
+  3 bytes per char (where compression pays most).
+- First attempt (naive): reallocate merges toward Hindi at vocab 2048, hindi_frac 0.45.
+  Hindi improved to ~1.75 chars/tok but English got worse, total tokens 46365 -> 46442.
+  Zero-sum, no bpb gain, not shipped.
+- Fix: do not steal English merges. Expand budget to vocab 2304 (untied, 1,995,200
+  params, under 2M cap) and give Devanagari a protected pass (hindi_frac 0.42). English
+  merges preserved, Hindi added on top.
+- Compression (dev): total tokens 46365 -> 45073 (down 2.8 percent). English held,
+  Hindi 1.58 -> 1.74 chars/tok. Lossless on train, dev, arbitrary utf-8.
+- dev bpb: 1.6947 -> 1.6933 (new best). Overall vs baseline: 2.3718 -> 1.6933, 28.6
+  percent reduction, within 2000 steps and under 2M params.
