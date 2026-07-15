@@ -41,3 +41,25 @@ Score command: `python evaluate.py --checkpoint ckpt.pt --text_file ../data/dev_
 - Conclusion: recipe was a real but bounded win. The model now fits the byte-level
   data about as well as it can in 2000 steps. Remaining gains must come from the
   tokenizer (the Hindi third is still 3 bytes per char) and from param reallocation.
+
+## Run 2 - BPE tokenizer (vocab 2048)
+- Hypothesis: byte-level spends ~1/3 of compute predicting Hindi 3 bytes at a time.
+  A BPE trained on the corpus compresses bytes, so the fixed 2000 steps cover more
+  text and block_size spans more real context. bpb should drop even though per-token
+  loss rises, because bpb divides bits by bytes-per-token.
+- Changed (vs Run 1): replaced byte tokenizer with corpus-trained BPE, vocab 2048,
+  stdlib-only trainer (indexed incremental merges), lossless with byte fallback.
+  Merges saved to bpe_merges.json, loaded relative to tokenizer file. Model config
+  unchanged (untied, n_embd 160) to isolate the tokenizer effect.
+- Compression: corpus 7,318,592 bytes -> 2,149,341 tokens (3.405 bytes/token).
+  dev_eval 3.434 bytes/token. Roundtrip verified lossless on train, dev, and
+  arbitrary utf-8 (emoji, CJK, control bytes).
+- dev bpb: 2.2516 -> 1.9993 (down 0.2523). Broke below 2.0.
+- n_params 1,913,280 (under 2M cap). Per-token loss now ~4.48 (was 1.60) because
+  each token carries more information and vocab is larger, but bytes-per-token more
+  than compensates.
+- Observation: loss still declining at step 2000 (fewer tokens per step means less
+  total corpus seen), so the model is mildly under-trained again.
+- Conclusion: tokenizer is the dominant lever (biggest single drop so far). Next:
+  tie weights to free ~328K params for capacity, and consider larger batch to see
+  more corpus per step.
