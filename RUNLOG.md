@@ -80,24 +80,6 @@ Score command: `python evaluate.py --checkpoint ckpt.pt --text_file ../data/dev_
   STEP-LIMITED, not PARAM-LIMITED. Adding capacity hurts. Remaining gains should come
   from faster convergence within 2000 steps (larger effective batch, better init,
   LR tuning), not from a bigger model.
-
-## Run 3 - Tie weights + add depth (5 layers) [REVERTED]
-- Hypothesis: Run 2 left the model mildly under-trained and we had param headroom.
-  Tie input/output embeddings to free ~328K params, spend them on a 5th layer for
-  more capacity. Expected bpb to drop.
-- Changed (vs Run 2): tie_weights True, n_layer 4 -> 5. Params 1,913,280 -> 1,894,880.
-  Tokenizer and recipe unchanged.
-- dev bpb: 1.9993 -> 2.0451 (UP 0.0458). Train loss ended higher: 4.65 vs 4.48, and
-  the curve was still dropping steeply at step 2000 (vs nearly flat for 4-layer).
-- Diagnosis: this FAILED because the binding constraint at 2000 CPU steps is
-  optimization, not capacity. A deeper model has more to learn per step and did not
-  converge inside the step budget, so it underfit worse. Tying removed some output
-  flexibility on top of that.
-- Conclusion: reverted both changes. Key takeaway that reshapes strategy: we are
-  STEP-LIMITED, not PARAM-LIMITED. Adding capacity hurts. Remaining gains should come
-  from faster convergence within 2000 steps (larger effective batch, better init,
-  LR tuning), not from a bigger model.
-
 ## Run 4 - Batch size sweep (8 -> 24 -> 32)
 - Hypothesis: Run 3 proved we are step-limited, not param-limited. Larger batches give
   each of the fixed 2000 steps a cleaner, lower-variance gradient, so the model
