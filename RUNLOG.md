@@ -94,3 +94,18 @@ Score command: `python evaluate.py --checkpoint ckpt.pt --text_file ../data/dev_
 - Conclusion: batch size is the second major lever after the tokenizer, and it
   confirms the step-limited diagnosis. Best so far batch 32 = 1.8267. Next: push batch
   further, paired with a higher peak LR to keep converging inside 2000 steps.
+
+## Run 5 - Batch 48 + higher peak LR (1.5e-3)
+- Hypothesis: at batch 32 the loss was still falling at step 2000, so we had not
+  saturated convergence. Push batch to 48 for even cleaner gradients, and raise peak
+  LR 1e-3 -> 1.5e-3 so the model travels further within the fixed 2000 steps. Pairing
+  batch and LR is the standard way to keep a large-batch run converging.
+- Changed (vs Run 4 best): batch 32 -> 48, peak LR 1e-3 -> 1.5e-3. Tokenizer, model,
+  schedule shape all unchanged.
+- dev bpb: 1.8267 -> 1.7262 (down 0.1005). Train loss 3.83 -> 3.40.
+- Observation: early loss curve stayed smooth (no spikes at steps 100-300), so 1.5e-3
+  was stable at this batch. Loss still declining slightly at step 2000, so not fully
+  saturated. Run took ~4.5 min (per-step ~120 ms).
+- Conclusion: the batch-plus-LR axis is the dominant remaining lever now that the
+  tokenizer is fixed. Best so far 1.7262. This confirms twice over that the model is
+  optimization-limited: everything that helps it converge more inside 2000 steps wins.
