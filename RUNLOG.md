@@ -28,3 +28,16 @@ Score command: `python evaluate.py --checkpoint ckpt.pt --text_file ../data/dev_
 ---
 
 <!-- New entries appended below as experiments run. -->
+
+## Run 1 - Modern training recipe
+- Hypothesis: baseline under-optimized (loss still falling at step 2000). A proper
+  LR schedule plus higher peak LR should use the fixed 2000 steps far better.
+- Changed (vs baseline): plain Adam to AdamW with weight decay 0.1, constant LR 3e-4
+  to peak 1e-3 with 100-step linear warmup and cosine decay to 10 percent, added
+  gradient clipping at norm 1.0, betas (0.9, 0.95). Nothing else touched.
+- dev bpb: 2.3718 -> 2.2516 (down 0.1202). Train loss 1.73 -> 1.61.
+- Observation: loss is now flat around 1.60 by step 2000 (converged this run), where
+  baseline was cut off mid-descent. LR annealed from 1e-3 to 1e-4 as planned.
+- Conclusion: recipe was a real but bounded win. The model now fits the byte-level
+  data about as well as it can in 2000 steps. Remaining gains must come from the
+  tokenizer (the Hindi third is still 3 bytes per char) and from param reallocation.
