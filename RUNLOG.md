@@ -14,7 +14,7 @@ Score command: `python evaluate.py --checkpoint ckpt.pt --text_file ../data/dev_
 
 ---
 
-## Run 0 — Baseline (reference)
+## Run 0 - Baseline (reference)
 - **Hypothesis:** starter is "mediocre on purpose"; establish the number to beat.
 - **Config:** byte-level tokenizer (vocab 256), block 128, 4 layer / 4 head / n_embd 160,
   Adam constant LR 3e-4, no warmup/schedule/weight-decay/clipping, tie_weights=False,
@@ -23,7 +23,7 @@ Score command: `python evaluate.py --checkpoint ckpt.pt --text_file ../data/dev_
 - **Observation:** train loss still falling at step 2000 (1.73, not plateaued)
   → model is **under-optimizing**, not overfitting. Headroom is in the training recipe
   (LR too timid, no schedule) AND in the tokenizer (byte-level wastes the Hindi third).
-- **Conclusion:** two independent levers to attack — recipe (cheap, safe) then tokenizer (big).
+- **Conclusion:** two independent levers to attack - recipe (cheap, safe) then tokenizer (big).
 
 ---
 
