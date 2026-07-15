@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Speedrun — Submission Summary</title>
+<style>
+  :root{
+    --ink:#12100e; --paper:#f6f3ec; --line:#d8d0c0; --accent:#3a5a40;
+    --accent2:#8a3033; --mut:#6b6357;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+    line-height:1.55;padding:48px 20px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:820px;margin:0 auto}
+  .eyebrow{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+  h1{font-size:40px;line-height:1.05;font-weight:600;letter-spacing:-.01em;margin-bottom:6px}
+  .sub{color:var(--mut);font-size:17px;margin-bottom:8px}
+  .score{font-family:ui-monospace,Menlo,monospace;font-size:15px;color:var(--ink);
+    border-top:2px solid var(--ink);border-bottom:1px solid var(--line);
+    padding:14px 0;margin:26px 0 34px;display:flex;gap:28px;flex-wrap:wrap}
+  .score b{font-size:26px;font-weight:700}
+  .score span{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+  h2{font-size:13px;font-family:ui-monospace,Menlo,monospace;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--accent);margin:38px 0 14px;
+    padding-bottom:7px;border-bottom:1px solid var(--line)}
+  p{margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:14.5px;margin:6px 0 10px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--mut)}
+  td.n{font-family:ui-monospace,Menlo,monospace;white-space:nowrap}
+  tr.rev td{color:var(--accent2)}
+  tr.best td{background:rgba(58,90,64,.08);font-weight:600}
+  .mono{font-family:ui-monospace,Menlo,monospace}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 26px;font-size:14.5px;margin-top:4px}
+  .grid div{padding:7px 0;border-bottom:1px solid var(--line)}
+  .grid .k{color:var(--mut);font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  .split{display:flex;gap:0;margin:8px 0 4px;height:34px;border:1px solid var(--ink);
+    font-family:ui-monospace,Menlo,monospace;font-size:12px;overflow:hidden}
+  .split .h{background:var(--ink);color:var(--paper);display:flex;align-items:center;padding:0 14px}
+  .split .m{background:var(--accent);color:var(--paper);display:flex;align-items:center;padding:0 14px}
+  .foot{margin-top:40px;padding-top:16px;border-top:2px solid var(--ink);
+    font-size:13px;color:var(--mut)}
+  em{font-style:italic}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Plivo 2,000-Step LLM Speedrun · 24IM10014</div>
+  <h1>Making a mediocre GPT good, on a fixed budget.</h1>
+  <div class="sub">Same 2000 steps, same 2M parameters, same corpus as everyone. The only lever is judgment.</div>
+
+  <div class="score">
+    <div><b>1.6933</b><span>final dev bpb</span></div>
+    <div><b>2.3718</b><span>baseline bpb</span></div>
+    <div><b>28.6%</b><span>reduction</span></div>
+    <div><b>1,995,200</b><span>params / 2.0M cap</span></div>
+    <div><b>2000</b><span>steps</span></div>
+  </div>
+
+  <h2>The thesis</h2>
+  <p>Two questions decided everything. <em>Where is the corpus wasting compute?</em> and
+  <em>What is the binding constraint — parameters or steps?</em> Measurement answered both.
+  A third of the byte budget is Devanagari, which a byte-level tokenizer spends three tokens
+  per character on, so the tokenizer was the first and largest lever. And a deliberate
+  capacity experiment (Run 3) made the score <em>worse</em>, proving the run is
+  optimization-limited, not parameter-limited — which redirected all further effort toward
+  faster convergence inside the step budget rather than a bigger model.</p>
+
+  <h2>Every run</h2>
+  <table>
+    <thead><tr><th>#</th><th>Change</th><th>dev bpb</th></tr></thead>
+    <tbody>
+      <tr><td class="n">0</td><td>Baseline — byte-level tokenizer, Adam, constant LR</td><td class="n">2.3718</td></tr>
+      <tr><td class="n">1</td><td>Modern recipe — AdamW, cosine+warmup, clip, peak 1e-3</td><td class="n">2.2516</td></tr>
+      <tr><td class="n">2</td><td>BPE tokenizer, vocab 2048 (3.4 bytes/token)</td><td class="n">1.9993</td></tr>
+      <tr class="rev"><td class="n">3</td><td>Tie weights + 5th layer — reverted, proved step-limited</td><td class="n">2.0451</td></tr>
+      <tr><td class="n">4</td><td>Batch sweep 8 → 24 → 32</td><td class="n">1.8267</td></tr>
+      <tr><td class="n">5</td><td>Batch 48 + peak LR 1.5e-3</td><td class="n">1.7262</td></tr>
+      <tr><td class="n">6</td><td>Batch 64 + peak LR 2e-3</td><td class="n">1.6947</td></tr>
+      <tr class="best"><td class="n">7</td><td>Script-aware BPE, protected Hindi budget, vocab 2304</td><td class="n">1.6933</td></tr>
+    </tbody>
+  </table>
+  <p>Full hypotheses, before/after numbers, and conclusions for each run are in
+  <span class="mono">RUNLOG.md</span>.</p>
+
+  <h2>The differentiator — script-aware tokenization</h2>
+  <p>Plain BPE is greedy on frequency. Because English is 67% of the corpus, English
+  byte-pairs win almost every merge and Devanagari is starved — measured on dev, English
+  compressed to ~3.16 characters per token but Hindi to only ~1.58, despite Hindi being
+  where bytes are most expensive. The naive fix (reallocate merges toward Hindi at fixed
+  vocab) was <em>zero-sum</em>: Hindi improved but English degraded, total tokens flat.
+  The real fix was to <em>expand</em> the budget under the cap rather than steal from
+  English — vocab 2304 with a protected Devanagari pass — cutting total dev tokens 2.8%
+  while holding English and improving Hindi to ~1.74 characters per token. Small bpb gain,
+  but a measured, defensible mechanism that byte-BPE structurally cannot reach.</p>
+
+  <h2>Final architecture</h2>
+  <div class="grid">
+    <div><span class="k">tokenizer</span> script-aware BPE, vocab 2304</div>
+    <div><span class="k">params</span> 1,995,200 (under 2.0M cap)</div>
+    <div><span class="k">layers / heads</span> 4 / 4</div>
+    <div><span class="k">embedding dim</span> 160</div>
+    <div><span class="k">block size</span> 128 tokens (~440 bytes)</div>
+    <div><span class="k">weight tying</span> off (hurt at this depth)</div>
+    <div><span class="k">optimizer</span> AdamW, wd 0.1, betas (0.9, 0.95)</div>
+    <div><span class="k">schedule</span> cosine, 100-step warmup, peak 2e-3</div>
+    <div><span class="k">batch</span> 64</div>
+    <div><span class="k">grad clip</span> 1.0</div>
+    <div><span class="k">steps</span> 2000</div>
+    <div><span class="k">final dev bpb</span> 1.6933</div>
+  </div>
+
+  <h2>Human vs. machine</h2>
+  <p>The code itself — the BPE trainer, the script-aware allocation, the training-loop
+  edits, the HTML — was written with an AI coding assistant. What is human is everything
+  that decided <em>what to try and why</em>: reading the corpus to find the Devanagari
+  cost, forming each hypothesis, choosing to test capacity and reading its failure as
+  proof of a step-limit, diagnosing the naive script-aware attempt as zero-sum and
+  engineering the budget-expanding fix, and stopping each lever at its knee rather than
+  chasing a number. The assistant produced a strong baseline of code; the reasoning, the
+  experimental discipline, and the interpretation of every result are mine.</p>
+  <div class="split">
+    <div class="h" style="flex:1">Human — direction, hypotheses, diagnosis, decisions</div>
+    <div class="m" style="flex:1">Machine — code implementation, boilerplate</div>
+  </div>
+
+  <div class="foot">
+    Submission: <span class="mono">plivo-ml-24IM10014</span> ·
+    ckpt.pt, tokenizer.py, train.py, model.py, evaluate.py, train_bpe_sa.py,
+    bpe_merges.json, RUNLOG.md, NOTES.md, SUMMARY.html ·
+    reproduce with <span class="mono">python evaluate.py --checkpoint ckpt.pt --text_file ../data/dev_eval.txt</span>
+  </div>
+</div>
+</body>
+</html>
